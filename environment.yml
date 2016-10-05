@@ -1,0 +1,12 @@
+name: cpen442windows
+channels: !!python/tuple
+- !!python/unicode 'defaults'
+dependencies:
+- pip=8.1.2=py27_0
+- pycrypto=2.6.1=py27_4
+- python=2.7.12=0
+- setuptools=27.2.0=py27_1
+- vs2008_runtime=9.00.30729.1=2
+- wheel=0.29.0=py27_0
+prefix: C:\Users\Pascal\Miniconda2\envs\cpen442windows
+
