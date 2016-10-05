@@ -1,0 +1,16 @@
+name: cpen442
+channels: !!python/tuple
+- defaults
+dependencies:
+- openssl=1.0.2j=0
+- pip=8.1.2=py27_0
+- pycrypto=2.6.1=py27_4
+- python=2.7.12=1
+- readline=6.2=2
+- setuptools=27.2.0=py27_0
+- sqlite=3.13.0=0
+- tk=8.5.18=0
+- wheel=0.29.0=py27_0
+- zlib=1.2.8=3
+prefix: /home/derek/anaconda3/envs/cpen442
+
