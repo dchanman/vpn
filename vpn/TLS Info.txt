@@ -1,0 +1,35 @@
+Byte 0
+22 _ _ _
+Byte 1 
+Version(2), Length(2)
+Byte 5
+Message Typ(1), Handshake message length(3)
+Byte 9->n-1
+Handshake message data
+
+Ordering of Handshake:
+ClientHello
+
+ServerHello
+ServerKeyExchange
+ServerHelloDone
+
+ClientKeyExchange
+
+
+
+
+Message types
+
+Code	Description
+0		HelloRequest
+1		ClientHello
+2		ServerHello
+4		NewSessionTicket
+11		Certificate
+12		ServerKeyExchange
+13		CertificateRequest
+14		ServerHelloDone
+15		CertificateVerify
+16		ClientKeyExchange
+20		Finished
