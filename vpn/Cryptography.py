@@ -10,6 +10,7 @@
 ###############################################################################
 
 from Crypto.Hash import SHA256
+from Crypto.Hash import HMAC
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA
 from Crypto import Random
@@ -23,7 +24,19 @@ def hash(msg):
     """
     sha256 = SHA256.new()
     sha256.update(msg)
-    return sha256.digest()
+    return sha256.hexdigest()
+
+###############################################################################
+# HMAC with SHA256
+###############################################################################
+def hmac(key, iv, msg):
+    """
+    Returns an HMAC for an IV and a message. Uses SHA256
+    """
+    hmac = HMAC.new(key, digestmod = SHA256.new())
+    hmac.update(bytes(iv))
+    hmac.update(bytes(msg))
+    return hmac.hexdigest()
 
 ###############################################################################
 # Symmetric Key Crypto with AES-256
@@ -128,6 +141,10 @@ if __name__ == "__main__":
     decrypted = symmetricKeyDecrypt(symKey, iv, encrypted)
     print("Decrypted: {}".format(decrypted))
     
+    # HMAC
+    hmacResult = hmac(symKey, iv, msg)
+    print("HMAC: {}".format(hmacResult))
+    
     # Asymmetric Key Testing
     privKey, pubKey = generateAsymmetricKey()
     print("Private key: {}".format(privKey))
@@ -142,8 +159,3 @@ if __name__ == "__main__":
     print("Signature: {}".format(signature))
     verify = asymmetricKeyVerify(pubKey, msg, signature)
     print("Verify: {}".format(verify))
-    
-    
-    
-    
-    
