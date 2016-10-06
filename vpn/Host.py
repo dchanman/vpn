@@ -14,7 +14,7 @@ def DEBUG(msg):
     """
     print(msg)
 
-class Host:
+class Host(object):
     
     def __init__(self, ipAddr, portNum, sharedSecret):
         self.ipAddr = ipAddr
