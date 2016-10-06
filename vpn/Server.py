@@ -15,13 +15,21 @@ class Server(Host.Host):
         self.initServer()
         
         # Receive RandomA
-        recv = self.recv()
+        sessionID = self.recv()
+        RA = self.recv();
+        RB = Cryptography.generateSymmetricKey();
         
         # Send reply: RandomB, h(msg, "SRVR", sharedSecret)
+        self.send(RB)   
+        
+        msg = str(sessionID) + " " + str(RA)
+        hash1 = Cryptography.hash(msg + " SRVR " + str(self.sharedSecret))
+        self.send(hash1)    
         
         # Receive h(msgs, "CLNT", sharedSecret)
-        
-        return True
+        msg2 = self.recv()
+        if msg2 == Cryptography.hash(str(RB)+hash1 +" CLNT "+str(self.sharedSecret)):
+            return True
     
     def run(self):
         """

@@ -15,11 +15,21 @@ class Client(Host.Host):
         self.initClient()
         
         # Send RandomA
-        client.send("Hello!")
-        
+        sessionID = Cryptography.generateSymmetricKey()
+        RA = Cryptography.generateSymmetricKey()
+        self.send(sessionID)
+        self.send(RA)
+                        
         # Wait for reply: RandomB, h(msg, "SRVR", sharedSecret)
-        
+        RB = self.recv()
+        hash1 = self.recv();
+        msg = str(sessionID) + " " + str(RA) + " SRVR " + str(self.sharedSecret) 
+        if hash1 != Cryptography.hash(msg):        
+            return false
+            
         # Send h(msgs, "CLNT", sharedSecret)
+        msg2 = str(RB) + hash1 + " CLNT " + str(self.sharedSecret)
+        self.send(Cryptography.hash(msg2));
         
         return True
     
