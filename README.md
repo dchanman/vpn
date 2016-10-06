@@ -36,11 +36,11 @@ We assumes that both client and server have a *sharedSecret* that no other party
 
 ### Steps
 1. Client: Send a randomly generated **session-id** as well as a random number **R<sub>A</sub>**.
-2. Server: Replies with the same **session-id**, another random number **R<sub>A</sub>**, and the hash *h(message1, "SRVR", sharedSecret)*
+2. Server: Replies with the same **session-id**, another random number **R<sub>B</sub>**, and the hash *h(message1, "SRVR", sharedSecret)*
 3. Client: Replies with the hash *h(mesage1, message2, "CLNT", sharedSecret)*
 
 At this point, both client and server have established a session-id. They use their *sharedSecret* to hash the session-id for seeding a random generator, and the output will be used to create their session key.
 
 ## Communication
 
-Messages are sent as a...
+Messages are encrypted with AES in CBC mode with a randomly generated IV and the session key. The complete message to be sent is *(IV, encrypted message)* and the *HMAC* of that message.
