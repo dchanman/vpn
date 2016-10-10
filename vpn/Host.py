@@ -23,6 +23,7 @@ class Host(object):
         self.sharedSecret = sharedSecret
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection = None
+        self.cumulativeHmac = ""
     
     def initServer(self):
         """
@@ -70,19 +71,24 @@ class Host(object):
     
     def sendEncrypted(self, key, msg):
         """
-        Sends a message encrypted with the key. Returns the number of bytes sent
+        Sends a message encrypted with the key. Returns the number of bytes sent.
+        Also updates the cumulativeHmac
         """
         iv = Cryptography.generateRandomIV()
         encrypted = Cryptography.symmetricKeyEncrypt(key, iv, msg)
         hmac = Cryptography.hmac(key, iv, msg)
+        
+        self.cumulativeHmac = Cryptography.hash(self.cumulativeHmac + hmac)
+        
         # Full message format: IV | Message | HMAC
-        self.TRACE("IV: {}\nEncrypted: {}\nHMAC: {}\n".format(iv, encrypted, hmac))
-        fullMessage = iv + encrypted + hmac
+        self.TRACE("IV: {}\nEncrypted: {}\nHMAC: {}\nCumulative HMAC: {}\n".format(iv, encrypted, hmac, self.cumulativeHmac))
+        fullMessage = iv + encrypted + self.cumulativeHmac
         return self.send(fullMessage)
     
     def recvEncrypted(self, key):
         """
         Receives a message and decrypts it with the key. Returns the message as a string
+        Also updates the cumulativeHmac
         """
         msg = self.recv(1024)
         if len(msg) < Cryptography.SYMMETRIC_KEY_IV_SIZE + Cryptography.HMAC_LENGTH:
@@ -91,12 +97,15 @@ class Host(object):
         
         iv = msg[:Cryptography.SYMMETRIC_KEY_IV_SIZE]
         encrypted = msg[Cryptography.SYMMETRIC_KEY_IV_SIZE : len(msg) - Cryptography.HMAC_LENGTH]
-        hmac = msg[-Cryptography.HMAC_LENGTH:]
+        receivedCumulativeHmac = msg[-Cryptography.HMAC_LENGTH:]
 
         decrypted = Cryptography.symmetricKeyDecrypt(key, iv, encrypted)
-        self.TRACE("IV: {}\nEncrypted: {}\nHMAC: {}\nDecrypted: {}\n".format(iv, encrypted, hmac, decrypted))
-        verificationHMAC = Cryptography.hmac(key, iv, decrypted)
-        if (verificationHMAC != hmac):
+        calculatedHMAC = Cryptography.hmac(key, iv, decrypted)
+        self.cumulativeHmac = Cryptography.hash(self.cumulativeHmac + calculatedHMAC)
+        
+        self.TRACE("IV: {}\nEncrypted: {}\nDecrypted: {}\nComputed HMAC: {}\nReceived Cumulative HMAC: {}\nCalculated Cumulative HMAC: {}\n".format(iv, encrypted, decrypted, calculatedHMAC, receivedCumulativeHmac, self.cumulativeHmac))
+        
+        if (self.cumulativeHmac != receivedCumulativeHmac):
             DEBUG("Error: HMAC was incorrect")
             return None
         
