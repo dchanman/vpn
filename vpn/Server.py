@@ -15,9 +15,9 @@ class Server(Host.Host):
         self.initServer()
         
         # Receive RandomA
-        glob = self.recv()
-        sessionID = glob[:Cryptography.SYMMETRIC_KEY_KEY_SIZE]
-        RA = glob[Cryptography.SYMMETRIC_KEY_KEY_SIZE:]
+        recv1 = self.recv()
+        sessionID = recv1[:Cryptography.SYMMETRIC_KEY_KEY_SIZE]
+        RA = recv1[Cryptography.SYMMETRIC_KEY_KEY_SIZE:]
         self.TRACE("1 Recv:\nsessionId: {}\nRA: {}\n".format(sessionID, RA))
         
         # Send reply: RandomB, h(msg, "SRVR", sharedSecret)
@@ -25,12 +25,14 @@ class Server(Host.Host):
         msg = str(sessionID) + str(RA)
         hash1 = Cryptography.hash(msg + "SRVR" + str(self.sharedSecret))
         self.TRACE("2 Send:\nRB: {}\nhash1: {}\n".format(RB, hash1))
-        self.send(RB + hash1)
+        send1 = RB + hash1
+        self.send(send1)
         
         # Receive h(msgs, "CLNT", sharedSecret)
-        hash2 = self.recv()
-        self.TRACE("3 Recv:\nhash <{}>\n".format(hash2))
-        if hash2 != Cryptography.hash(str(RB)+hash1 + "CLNT" + str(self.sharedSecret)):
+        recv2 = self.recv()
+        self.TRACE("3 Recv:\nhash <{}>\n".format(recv2))
+        hash2 = Cryptography.hash(recv1 + send1 + "CLNT" + str(self.sharedSecret))
+        if recv2 != hash2:
             print("Error: Unexpected hash2")
             return False
         

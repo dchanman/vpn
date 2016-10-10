@@ -18,12 +18,13 @@ class Client(Host.Host):
         sessionID = Cryptography.generateSymmetricKey()
         RA = Cryptography.generateSymmetricKey()
         self.TRACE("1 Send:\nsessionId: {}\nRA: {}\n".format(sessionID, RA))
-        self.send(sessionID + RA)
+        send1 = sessionID + RA
+        self.send(send1)
                         
         # Wait for reply: RandomB, h(msg, "SRVR", sharedSecret)
-        glob = self.recv(1024)
-        RB = glob[:Cryptography.SYMMETRIC_KEY_KEY_SIZE]
-        hash1 = glob[Cryptography.SYMMETRIC_KEY_KEY_SIZE:]
+        recv1 = self.recv(1024)
+        RB = recv1[:Cryptography.SYMMETRIC_KEY_KEY_SIZE]
+        hash1 = recv1[Cryptography.SYMMETRIC_KEY_KEY_SIZE:]
         self.TRACE("2 Recv:\nRB: {}\nhash1: {}\n".format(RB, hash1))
         msg = str(sessionID) + str(RA) + "SRVR" + str(self.sharedSecret) 
         if hash1 != Cryptography.hash(msg):
@@ -31,7 +32,7 @@ class Client(Host.Host):
             return False
             
         # Send h(msgs, "CLNT", sharedSecret)
-        msg2 = str(RB) + hash1 + "CLNT" + str(self.sharedSecret)
+        msg2 = send1 + recv1 + "CLNT" + str(self.sharedSecret)
         hash2 = Cryptography.hash(msg2)
         self.TRACE("3 Send:\nhash <{}>\n".format(hash2))
         self.send(hash2);
