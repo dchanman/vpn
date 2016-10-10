@@ -4,8 +4,10 @@ import Cryptography
 
 class Client(Host.Host):
     
-    def __init__(self, ipAddr = "127.0.0.1", portNum = 32694, sharedSecret="iloveildar"):
-        super(Client, self).__init__(ipAddr, portNum, sharedSecret)
+    def __init__(self, ipAddr = "127.0.0.1", portNum = 32694, sharedSecret="iloveildar", padding=" "):
+        while len(sharedSecret) < Cryptography.SYMMETRIC_KEY_KEY_SIZE:
+            sharedSecret += padding
+        super(Client, self).__init__(ipAddr, portNum, sharedSecret)        
         
     def handshake(self):
         """
@@ -14,20 +16,25 @@ class Client(Host.Host):
         """
         self.initClient()
         
-        # Send RandomA
-        sessionID = Cryptography.generateSymmetricKey()
-        RA = Cryptography.generateSymmetricKey()
-        self.TRACE("1 Send:\nsessionId: {}\nRA: {}\n".format(sessionID, RA))
-        send1 = sessionID + RA
+        # Send Encrypted Session Key and RandomA
+        self.sessionKey = Cryptography.generateSymmetricKey()
+        iv = Cryptography.generateRandomIV()
+        encryptedSessionKey = Cryptography.symmetricKeyEncrypt(self.sharedSecret, iv, self.sessionKey)
+                
+        RA = Cryptography.generateNonce()
+        self.TRACE("1 Send:\encryptedSessionKey: {}\nRA: {}\n".format(encryptedSessionKey, RA))
+        send1 = iv + encryptedSessionKey + RA
         self.send(send1)
                         
         # Wait for reply: RandomB, h(msg, "SRVR", sharedSecret)
         recv1 = self.recv(1024)
-        RB = recv1[:Cryptography.SYMMETRIC_KEY_KEY_SIZE]
-        hash1 = recv1[Cryptography.SYMMETRIC_KEY_KEY_SIZE:]
+        RB = recv1[:Cryptography.NONCE_SIZE]
+        hash1 = recv1[Cryptography.NONCE_SIZE:]
         self.TRACE("2 Recv:\nRB: {}\nhash1: {}\n".format(RB, hash1))
-        msg = str(sessionID) + str(RA) + "SRVR" + str(self.sharedSecret) 
-        if hash1 != Cryptography.hash(msg):
+        verifyHash1 = Cryptography.hash(send1 + "SRVR" + str(self.sharedSecret))
+        self.TRACE("Verify: {}".format(verifyHash1))
+        self.TRACE("send1: {}".format(send1))
+        if hash1 != verifyHash1:
             self.TRACE("Error: Unexpected hash1")
             return False
             
@@ -37,10 +44,8 @@ class Client(Host.Host):
         self.TRACE("3 Send:\nhash <{}>\n".format(hash2))
         self.send(hash2);
         
-        # TODO: Move this
-        self.sessionKey = self.recv()
-        
         self.TRACE("Handshake esablished")
+        self.TRACE("Session Key: {}".format(self.sessionKey))
         return True
     
     def run(self):

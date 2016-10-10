@@ -21,7 +21,20 @@ from Crypto import Random
 SYMMETRIC_KEY_BLOCK_SIZE = AES.block_size
 SYMMETRIC_KEY_IV_SIZE = 16
 SYMMETRIC_KEY_KEY_SIZE = 32
+NONCE_SIZE = 32
 HMAC_LENGTH = 64 # SHA256 is 64 charcaters long
+
+###############################################################################
+# Generate random key following handshake
+###############################################################################
+def hash(sharedSecret, sessionID):
+    """
+    Returns an AES key generated randomly from a sharedSecret + sessionID seed
+    """
+    Random.new().read(SYMMETRIC_KEY_BLOCK_SIZE)
+    sha256 = SHA256.new()
+    sha256.update(msg)
+    return sha256.hexdigest()
 
 ###############################################################################
 # Hashing with SHA256
@@ -82,6 +95,12 @@ def generateSymmetricKey():
     Returns a random 32-byte key (AES-256)
     """
     return Random.new().read(32)
+
+def generateNonce():
+    """
+    Returns a random 32-byte nonce
+    """
+    return Random.new().read(NONCE_SIZE)
 
 ###############################################################################
 # Asymmetric Key Crypto with RSA
