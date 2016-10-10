@@ -4,10 +4,10 @@ import Cryptography
 
 class Client(Host.Host):
     
-    def __init__(self, ipAddr = "127.0.0.1", portNum = 32694, sharedSecret="iloveildar", padding=" "):
+    def __init__(self, ipAddr = "127.0.0.1", portNum = 32694, sharedSecret="iloveildar", padding=" ", verbose = False):
         while len(sharedSecret) < Cryptography.SYMMETRIC_KEY_KEY_SIZE:
             sharedSecret += padding
-        super(Client, self).__init__(ipAddr, portNum, sharedSecret)        
+        super(Client, self).__init__(ipAddr, portNum, sharedSecret)
         
     def handshake(self):
         """
@@ -76,10 +76,12 @@ if __name__ == "__main__":
         nargs="?",
         help="Port number",
         default=32694)
+    parser.add_argument(
+        'verbose',
+        action="store_true",
+        help="Display handshaking")
 
     args = parser.parse_args()
     
-    port = args.port
-    
-    client = Client(portNum = port)
+    client = Client(portNum = args.port, verbose = args.verbose)
     client.run()

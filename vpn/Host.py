@@ -18,7 +18,7 @@ def DEBUG(msg):
 
 class Host(object):
     
-    def __init__(self, ipAddr, portNum, sharedSecret):
+    def __init__(self, ipAddr, portNum, sharedSecret, verbose = False):
         self.ipAddr = ipAddr
         self.portNum = portNum
         self.sharedSecret = sharedSecret
@@ -26,6 +26,7 @@ class Host(object):
         self.connection = None
         self.cumulativeHmac = ""
         self.connectionClosed = False
+        self.verbose = verbose
     
     def initServer(self):
         """
@@ -125,7 +126,7 @@ class Host(object):
                 msg = self.host.recvEncrypted(self.host.sessionKey)
                 if not msg:
                     self.host.connectionClosed = True
-                    print("Connection disconnected. Press <ENTER> to terminate")
+                    print("Shutdown initiated... Press <ENTER> to terminate")
                     try:
                         self.host.send(None)
                     except:
@@ -136,9 +137,10 @@ class Host(object):
     def startChat(self):
         recvThread = self.RecvEncryptedThread(self)
         recvThread.start()
+        print("\nPlease type your message here.\nPress <ENTER> to send\nSend an empty message to terminate the session\nHave fun!\n")
         while not self.connectionClosed:
             # Send and receive data
-            msg = raw_input("Please enter a message: ")
+            msg = raw_input()
             if self.connectionClosed:
                 print("Connection detected to be closed...")
                 break
@@ -147,7 +149,7 @@ class Host(object):
                 self.connectionClosed = True
                 break
         
-        print("Waiting for connection to finish...")        
+        print("Waiting for connection to finish... Press <ENTER> on the other connection")        
         recvThread.join()
         self.close()
         print("Receiver thread closed. Session ended.")        
@@ -159,7 +161,8 @@ class Host(object):
         At the moment this is just a wrapper for a print statement.
         Later on this can be message publishing on a dedicated channel.
         """
-        print(msg)
+        if self.verbose:
+            print(msg)
     
 ###############################################################################
 # Test code
