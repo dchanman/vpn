@@ -6,6 +6,9 @@
 ###############################################################################
 
 import socket
+import threading
+import Cryptography
+import binascii
 
 def DEBUG(msg):
     """
@@ -14,14 +17,17 @@ def DEBUG(msg):
     """
     print(msg)
 
-class Host:
+class Host(object):
     
-    def __init__(self, ipAddr, portNum, sharedSecret):
+    def __init__(self, ipAddr, portNum, sharedSecret, verbose = False):
         self.ipAddr = ipAddr
         self.portNum = portNum
         self.sharedSecret = sharedSecret
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection = None
+        self.cumulativeHmac = ""
+        self.connectionClosed = False
+        self.verbose = verbose
     
     def initServer(self):
         """
@@ -66,7 +72,99 @@ class Host:
             DEBUG("Error: Not connected")
             return ""
         return self.connection.recv(bufferSize)
+    
+    def sendEncrypted(self, key, msg):
+        """
+        Sends a message encrypted with the key. Returns the number of bytes sent.
+        Also updates the cumulativeHmac
+        """
+        iv = Cryptography.generateRandomIV()
+        encrypted = Cryptography.symmetricKeyEncrypt(key, iv, msg)
+        hmac = Cryptography.hmac(key, iv, msg)
         
+        self.cumulativeHmac = Cryptography.hash(self.cumulativeHmac + hmac)
+        
+        # Full message format: IV | Message | HMAC
+        self.TRACE("IV: {}\nEncrypted: {}\nHMAC: {}\nCumulative HMAC: {}\n".format(binascii.hexlify(iv), binascii.hexlify(encrypted), hmac, self.cumulativeHmac))
+        fullMessage = iv + encrypted + self.cumulativeHmac
+        return self.send(fullMessage)
+    
+    def recvEncrypted(self, key):
+        """
+        Receives a message and decrypts it with the key. Returns the message as a string
+        Also updates the cumulativeHmac
+        """
+        msg = self.recv(1024)
+        if len(msg) < Cryptography.SYMMETRIC_KEY_IV_SIZE + Cryptography.HMAC_LENGTH:
+            return None
+        
+        iv = msg[:Cryptography.SYMMETRIC_KEY_IV_SIZE]
+        encrypted = msg[Cryptography.SYMMETRIC_KEY_IV_SIZE : len(msg) - Cryptography.HMAC_LENGTH]
+        receivedCumulativeHmac = msg[-Cryptography.HMAC_LENGTH:]
+
+        decrypted = Cryptography.symmetricKeyDecrypt(key, iv, encrypted)
+        calculatedHMAC = Cryptography.hmac(key, iv, decrypted)
+        self.cumulativeHmac = Cryptography.hash(self.cumulativeHmac + calculatedHMAC)
+        
+        self.TRACE("IV: {}\nEncrypted: {}\nDecrypted: {}\nComputed HMAC: {}\nReceived Cumulative HMAC: {}\nCalculated Cumulative HMAC: {}\n".format(binascii.hexlify(iv), binascii.hexlify(encrypted), decrypted, calculatedHMAC, receivedCumulativeHmac, self.cumulativeHmac))
+        
+        if (self.cumulativeHmac != receivedCumulativeHmac):
+            DEBUG("Error: HMAC was incorrect")
+            return None
+        
+        return decrypted
+    
+    ############################################################################
+    # Code for the async chat
+    ############################################################################
+    class RecvEncryptedThread(threading.Thread):
+        def __init__(self, host):
+            threading.Thread.__init__(self)
+            self.host = host
+        
+        def run(self):
+            while not self.host.connectionClosed:
+                msg = self.host.recvEncrypted(self.host.sessionKey)
+                if not msg:
+                    self.host.connectionClosed = True
+                    print("Shutdown initiated... Press <ENTER> to terminate")
+                    try:
+                        self.host.send(None)
+                    except:
+                        pass
+                    return
+                print("Received ({}): {}".format(len(msg), msg))
+
+    def startChat(self):
+        recvThread = self.RecvEncryptedThread(self)
+        recvThread.start()
+        print("\nPlease type your message here.\nPress <ENTER> to send\nSend an empty message to terminate the session\nHave fun!\n")
+        while not self.connectionClosed:
+            # Send and receive data
+            msg = raw_input()
+            if self.connectionClosed:
+                print("Connection detected to be closed...")
+                break
+            self.sendEncrypted(self.sessionKey, msg)
+            if not msg:
+                self.connectionClosed = True
+                break
+        
+        print("Waiting for connection to finish... Press <ENTER> on the other connection")        
+        recvThread.join()
+        self.close()
+        print("Receiver thread closed. Session ended.")        
+                
+    
+    def TRACE(self, msg):
+        """
+        Prints diagnostic messages for debugging the VPN connection.
+        At the moment this is just a wrapper for a print statement.
+        Later on this can be message publishing on a dedicated channel.
+        """
+        if self.verbose:
+            print(msg)
+    
 ###############################################################################
 # Test code
 ###############################################################################
@@ -105,7 +203,7 @@ if __name__ == "__main__":
             msg = raw_input("Please enter a message: ")
             client.send(msg)
             reply = client.recv()
-            if len(reply) == 0:
+            if not reply:
                 client.close()
                 print("Server disconnected. Done.")
                 sys.exit(0)
