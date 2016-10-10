@@ -16,6 +16,14 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 
 ###############################################################################
+# Constants
+###############################################################################
+SYMMETRIC_KEY_BLOCK_SIZE = AES.block_size
+SYMMETRIC_KEY_IV_SIZE = 16
+SYMMETRIC_KEY_KEY_SIZE = 32
+HMAC_LENGTH = 64 # SHA256 is 64 charcaters long
+
+###############################################################################
 # Hashing with SHA256
 ###############################################################################
 def hash(msg):
@@ -29,10 +37,13 @@ def hash(msg):
 ###############################################################################
 # HMAC with SHA256
 ###############################################################################
-def hmac(key, iv, msg):
+def hmac(key, iv, msg, padding = " "):
     """
     Returns an HMAC for an IV and a message. Uses SHA256
     """
+    while(len(msg) % 16 != 0):
+        msg += padding
+    
     hmac = HMAC.new(key, digestmod = SHA256.new())
     hmac.update(bytes(iv))
     hmac.update(bytes(msg))
@@ -64,7 +75,7 @@ def generateRandomIV():
     """
     Returns a random IV to be used with AES
     """
-    return Random.new().read(AES.block_size)
+    return Random.new().read(SYMMETRIC_KEY_BLOCK_SIZE)
 
 def generateSymmetricKey():
     """

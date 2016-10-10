@@ -17,20 +17,29 @@ class Client(Host.Host):
         # Send RandomA
         sessionID = Cryptography.generateSymmetricKey()
         RA = Cryptography.generateSymmetricKey()
-        self.send(sessionID)
-        self.send(RA)
+        self.TRACE("1 Send:\nsessionId: {}\nRA: {}\n".format(sessionID, RA))
+        self.send(sessionID + RA)
                         
         # Wait for reply: RandomB, h(msg, "SRVR", sharedSecret)
-        RB = self.recv()
-        hash1 = self.recv();
-        msg = str(sessionID) + " " + str(RA) + " SRVR " + str(self.sharedSecret) 
-        if hash1 != Cryptography.hash(msg):        
-            return false
+        glob = self.recv(1024)
+        RB = glob[:Cryptography.SYMMETRIC_KEY_KEY_SIZE]
+        hash1 = glob[Cryptography.SYMMETRIC_KEY_KEY_SIZE:]
+        self.TRACE("2 Recv:\nRB: {}\nhash1: {}\n".format(RB, hash1))
+        msg = str(sessionID) + str(RA) + "SRVR" + str(self.sharedSecret) 
+        if hash1 != Cryptography.hash(msg):
+            self.TRACE("Error: Unexpected hash1")
+            return False
             
         # Send h(msgs, "CLNT", sharedSecret)
-        msg2 = str(RB) + hash1 + " CLNT " + str(self.sharedSecret)
-        self.send(Cryptography.hash(msg2));
+        msg2 = str(RB) + hash1 + "CLNT" + str(self.sharedSecret)
+        hash2 = Cryptography.hash(msg2)
+        self.TRACE("3 Send:\nhash <{}>\n".format(hash2))
+        self.send(hash2);
         
+        # TODO: Move this
+        self.sessionKey = self.recv()
+        
+        self.TRACE("Handshake esablished")
         return True
     
     def run(self):
@@ -50,8 +59,9 @@ class Client(Host.Host):
             
             # TODO: implement a chat, not an echo
             msg = raw_input("Please enter a message: ")
-            client.send(msg)
-            reply = client.recv()
+            # client.send(msg)
+            client.sendEncrypted(self.sessionKey, msg)
+            reply = client.recvEncrypted(self.sessionKey)
             if len(reply) == 0:
                 client.close()
                 print("Server disconnected. Done.")

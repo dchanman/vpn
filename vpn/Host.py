@@ -6,6 +6,7 @@
 ###############################################################################
 
 import socket
+import Cryptography
 
 def DEBUG(msg):
     """
@@ -66,7 +67,49 @@ class Host(object):
             DEBUG("Error: Not connected")
             return ""
         return self.connection.recv(bufferSize)
+    
+    def sendEncrypted(self, key, msg):
+        """
+        Sends a message encrypted with the key. Returns the number of bytes sent
+        """
+        iv = Cryptography.generateRandomIV()
+        encrypted = Cryptography.symmetricKeyEncrypt(key, iv, msg)
+        hmac = Cryptography.hmac(key, iv, msg)
+        # Full message format: IV | Message | HMAC
+        self.TRACE("IV: {}\nEncrypted: {}\nHMAC: {}\n".format(iv, encrypted, hmac))
+        fullMessage = iv + encrypted + hmac
+        return self.send(fullMessage)
+    
+    def recvEncrypted(self, key):
+        """
+        Receives a message and decrypts it with the key. Returns the message as a string
+        """
+        msg = self.recv(1024)
+        if len(msg) < Cryptography.SYMMETRIC_KEY_IV_SIZE + Cryptography.HMAC_LENGTH:
+            DEBUG("Error: Message length too short")
+            return None
         
+        iv = msg[:Cryptography.SYMMETRIC_KEY_IV_SIZE]
+        encrypted = msg[Cryptography.SYMMETRIC_KEY_IV_SIZE : len(msg) - Cryptography.HMAC_LENGTH]
+        hmac = msg[-Cryptography.HMAC_LENGTH:]
+
+        decrypted = Cryptography.symmetricKeyDecrypt(key, iv, encrypted)
+        self.TRACE("IV: {}\nEncrypted: {}\nHMAC: {}\nDecrypted: {}\n".format(iv, encrypted, hmac, decrypted))
+        verificationHMAC = Cryptography.hmac(key, iv, decrypted)
+        if (verificationHMAC != hmac):
+            DEBUG("Error: HMAC was incorrect")
+            return None
+        
+        return decrypted
+    
+    def TRACE(self, msg):
+        """
+        Prints diagnostic messages for debugging the VPN connection.
+        At the moment this is just a wrapper for a print statement.
+        Later on this can be message publishing on a dedicated channel.
+        """
+        print(msg)
+    
 ###############################################################################
 # Test code
 ###############################################################################

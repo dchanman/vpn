@@ -15,21 +15,31 @@ class Server(Host.Host):
         self.initServer()
         
         # Receive RandomA
-        sessionID = self.recv()
-        RA = self.recv();
-        RB = Cryptography.generateSymmetricKey();
+        glob = self.recv()
+        sessionID = glob[:Cryptography.SYMMETRIC_KEY_KEY_SIZE]
+        RA = glob[Cryptography.SYMMETRIC_KEY_KEY_SIZE:]
+        self.TRACE("1 Recv:\nsessionId: {}\nRA: {}\n".format(sessionID, RA))
         
         # Send reply: RandomB, h(msg, "SRVR", sharedSecret)
-        self.send(RB)   
-        
-        msg = str(sessionID) + " " + str(RA)
-        hash1 = Cryptography.hash(msg + " SRVR " + str(self.sharedSecret))
-        self.send(hash1)    
+        RB = Cryptography.generateSymmetricKey();
+        msg = str(sessionID) + str(RA)
+        hash1 = Cryptography.hash(msg + "SRVR" + str(self.sharedSecret))
+        self.TRACE("2 Send:\nRB: {}\nhash1: {}\n".format(RB, hash1))
+        self.send(RB + hash1)
         
         # Receive h(msgs, "CLNT", sharedSecret)
-        msg2 = self.recv()
-        if msg2 == Cryptography.hash(str(RB)+hash1 +" CLNT "+str(self.sharedSecret)):
-            return True
+        hash2 = self.recv()
+        self.TRACE("3 Recv:\nhash <{}>\n".format(hash2))
+        if hash2 != Cryptography.hash(str(RB)+hash1 + "CLNT" + str(self.sharedSecret)):
+            print("Error: Unexpected hash2")
+            return False
+        
+        # TODO: Move this
+        self.sessionKey = Cryptography.generateSymmetricKey()
+        self.send(self.sessionKey)
+        
+        print("Handshake esablished")
+        return True
     
     def run(self):
         """
@@ -47,7 +57,8 @@ class Server(Host.Host):
             # Send and receive data
             
             # TODO: implement a chat, not an echo
-            msg = self.recv()
+            # msg = self.recv()
+            msg = self.recvEncrypted(self.sessionKey)
             if len(msg) == 0:
                 self.close()
                 print("Client disconnected. Done.")
@@ -55,7 +66,7 @@ class Server(Host.Host):
             
             print("Received ({}): {}".format(len(msg), msg))
             # Echo the message
-            self.send(msg)
+            self.sendEncrypted(self.sessionKey, msg)
 
 ###############################################################################
 # Test code
