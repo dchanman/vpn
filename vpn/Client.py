@@ -63,7 +63,7 @@ class Client(Host.Host):
             # client.send(msg)
             client.sendEncrypted(self.sessionKey, msg)
             reply = client.recvEncrypted(self.sessionKey)
-            if len(reply) == 0:
+            if not reply:
                 client.close()
                 print("Server disconnected. Done.")
                 sys.exit(0)

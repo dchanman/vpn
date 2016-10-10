@@ -148,7 +148,7 @@ if __name__ == "__main__":
             msg = raw_input("Please enter a message: ")
             client.send(msg)
             reply = client.recv()
-            if len(reply) == 0:
+            if not reply:
                 client.close()
                 print("Server disconnected. Done.")
                 sys.exit(0)

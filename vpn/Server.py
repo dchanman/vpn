@@ -61,7 +61,7 @@ class Server(Host.Host):
             # TODO: implement a chat, not an echo
             # msg = self.recv()
             msg = self.recvEncrypted(self.sessionKey)
-            if len(msg) == 0:
+            if not msg:
                 self.close()
                 print("Client disconnected. Done.")
                 return
