@@ -6,6 +6,7 @@
 ###############################################################################
 
 import socket
+import threading
 import Cryptography
 
 def DEBUG(msg):
@@ -24,6 +25,7 @@ class Host(object):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection = None
         self.cumulativeHmac = ""
+        self.connectionClosed = False
     
     def initServer(self):
         """
@@ -92,7 +94,6 @@ class Host(object):
         """
         msg = self.recv(1024)
         if len(msg) < Cryptography.SYMMETRIC_KEY_IV_SIZE + Cryptography.HMAC_LENGTH:
-            DEBUG("Error: Message length too short")
             return None
         
         iv = msg[:Cryptography.SYMMETRIC_KEY_IV_SIZE]
@@ -110,6 +111,47 @@ class Host(object):
             return None
         
         return decrypted
+    
+    ############################################################################
+    # Code for the async chat
+    ############################################################################
+    class RecvEncryptedThread(threading.Thread):
+        def __init__(self, host):
+            threading.Thread.__init__(self)
+            self.host = host
+        
+        def run(self):
+            while not self.host.connectionClosed:
+                msg = self.host.recvEncrypted(self.host.sessionKey)
+                if not msg:
+                    self.host.connectionClosed = True
+                    print("Connection disconnected. Press <ENTER> to terminate")
+                    try:
+                        self.host.send(None)
+                    except:
+                        pass
+                    return
+                print("Received ({}): {}".format(len(msg), msg))
+
+    def startChat(self):
+        recvThread = self.RecvEncryptedThread(self)
+        recvThread.start()
+        while not self.connectionClosed:
+            # Send and receive data
+            msg = raw_input("Please enter a message: ")
+            if self.connectionClosed:
+                print("Connection detected to be closed...")
+                break
+            self.sendEncrypted(self.sessionKey, msg)
+            if not msg:
+                self.connectionClosed = True
+                break
+        
+        print("Waiting for connection to finish...")        
+        recvThread.join()
+        self.close()
+        print("Receiver thread closed. Session ended.")        
+                
     
     def TRACE(self, msg):
         """

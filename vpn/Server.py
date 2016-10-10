@@ -59,20 +59,7 @@ class Server(Host.Host):
             return
         
         # Data is now protected
-        while True:
-            # Send and receive data
-            
-            # TODO: implement a chat, not an echo
-            # msg = self.recv()
-            msg = self.recvEncrypted(self.sessionKey)
-            if not msg:
-                self.close()
-                print("Client disconnected. Done.")
-                return
-            
-            print("Received ({}): {}".format(len(msg), msg))
-            # Echo the message
-            self.sendEncrypted(self.sessionKey, msg)
+        self.startChat()
 
 ###############################################################################
 # Test code
