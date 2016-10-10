@@ -8,6 +8,7 @@
 import socket
 import threading
 import Cryptography
+import binascii
 
 def DEBUG(msg):
     """
@@ -84,7 +85,7 @@ class Host(object):
         self.cumulativeHmac = Cryptography.hash(self.cumulativeHmac + hmac)
         
         # Full message format: IV | Message | HMAC
-        self.TRACE("IV: {}\nEncrypted: {}\nHMAC: {}\nCumulative HMAC: {}\n".format(iv, encrypted, hmac, self.cumulativeHmac))
+        self.TRACE("IV: {}\nEncrypted: {}\nHMAC: {}\nCumulative HMAC: {}\n".format(binascii.hexlify(iv), binascii.hexlify(encrypted), hmac, self.cumulativeHmac))
         fullMessage = iv + encrypted + self.cumulativeHmac
         return self.send(fullMessage)
     
@@ -105,7 +106,7 @@ class Host(object):
         calculatedHMAC = Cryptography.hmac(key, iv, decrypted)
         self.cumulativeHmac = Cryptography.hash(self.cumulativeHmac + calculatedHMAC)
         
-        self.TRACE("IV: {}\nEncrypted: {}\nDecrypted: {}\nComputed HMAC: {}\nReceived Cumulative HMAC: {}\nCalculated Cumulative HMAC: {}\n".format(iv, encrypted, decrypted, calculatedHMAC, receivedCumulativeHmac, self.cumulativeHmac))
+        self.TRACE("IV: {}\nEncrypted: {}\nDecrypted: {}\nComputed HMAC: {}\nReceived Cumulative HMAC: {}\nCalculated Cumulative HMAC: {}\n".format(binascii.hexlify(iv), binascii.hexlify(encrypted), decrypted, calculatedHMAC, receivedCumulativeHmac, self.cumulativeHmac))
         
         if (self.cumulativeHmac != receivedCumulativeHmac):
             DEBUG("Error: HMAC was incorrect")

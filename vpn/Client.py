@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 import Host
 import Cryptography
+import binascii
 
 class Client(Host.Host):
     
     def __init__(self, ipAddr = "127.0.0.1", portNum = 32694, sharedSecret="iloveildar", padding=" ", verbose = False):
         while len(sharedSecret) < Cryptography.SYMMETRIC_KEY_KEY_SIZE:
             sharedSecret += padding
-        super(Client, self).__init__(ipAddr, portNum, sharedSecret)
+        super(Client, self).__init__(ipAddr, portNum, sharedSecret, verbose = verbose)
         
     def handshake(self):
         """
@@ -22,7 +23,11 @@ class Client(Host.Host):
         encryptedSessionKey = Cryptography.symmetricKeyEncrypt(self.sharedSecret, iv, self.sessionKey)
                 
         RA = Cryptography.generateNonce()
-        self.TRACE("1 Send:\encryptedSessionKey: {}\nRA: {}\n".format(encryptedSessionKey, RA))
+        self.TRACE("1 Send:\niv: {}\nencryptedSessionKey: {}\nnonceA: {}\n".format(
+            binascii.hexlify(iv),
+            binascii.hexlify(encryptedSessionKey),
+            binascii.hexlify(RA))
+        )
         send1 = iv + encryptedSessionKey + RA
         self.send(send1)
                         
@@ -30,10 +35,13 @@ class Client(Host.Host):
         recv1 = self.recv(1024)
         RB = recv1[:Cryptography.NONCE_SIZE]
         hash1 = recv1[Cryptography.NONCE_SIZE:]
-        self.TRACE("2 Recv:\nRB: {}\nhash1: {}\n".format(RB, hash1))
+        self.TRACE("2 Recv:\nnonceB: {}\nhash1: {}\n".format(
+            binascii.hexlify(RB),
+            hash1)
+        )
         verifyHash1 = Cryptography.hash(send1 + "SRVR" + str(self.sharedSecret))
-        self.TRACE("Verify: {}".format(verifyHash1))
-        self.TRACE("send1: {}".format(send1))
+        
+        self.TRACE("Verifying hash: {}\n".format(verifyHash1))
         if hash1 != verifyHash1:
             self.TRACE("Error: Unexpected hash1")
             return False
@@ -41,11 +49,11 @@ class Client(Host.Host):
         # Send h(msgs, "CLNT", sharedSecret)
         msg2 = send1 + recv1 + "CLNT" + str(self.sharedSecret)
         hash2 = Cryptography.hash(msg2)
-        self.TRACE("3 Send:\nhash <{}>\n".format(hash2))
+        self.TRACE("3 Send:\nhash {}\n".format(hash2))
         self.send(hash2);
         
         self.TRACE("Handshake esablished")
-        self.TRACE("Session Key: {}".format(self.sessionKey))
+        self.TRACE("Session Key: {}".format(binascii.hexlify(self.sessionKey)))
         return True
     
     def run(self):
@@ -77,7 +85,8 @@ if __name__ == "__main__":
         help="Port number",
         default=32694)
     parser.add_argument(
-        'verbose',
+        '--verbose',
+        '-v',
         action="store_true",
         help="Display handshaking")
 
