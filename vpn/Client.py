@@ -41,7 +41,7 @@ class Client(Host.Host):
         
         ########################################################################
         # MESSAGE 1
-        # Send p, g, (g^a)modp, and RandomA
+        # Send p, g, (g^a)modp, and nonce
         ########################################################################
         nonce = Cryptography.generateNonce()
         self.TRACE("1 Send:\n p: {}\n g: {}\n (g^a)modp: {}\n nonce: {}\n".format(
@@ -91,7 +91,7 @@ class Client(Host.Host):
         
         ########################################################################
         # MESSAGE 3
-        # Send E(h(msgs, "CLNT", sharedSecret), (g^ab)modp)
+        # Send E(h(msgs, "CLNT", sharedSecret), (g^ab)modp), IV
         ########################################################################
         IV3 = Cryptography.generateRandomIV()
         msg3 = send1 + recv2 + "CLNT" + str(self.sharedSecret)
@@ -109,7 +109,7 @@ class Client(Host.Host):
         ########################################################################
         print("Session key established")
         self.TRACE("Session Key: {}\n".format(self.sessionKey))
-        self.cumulativeHmac = Cryptography.hash(send1 + recv2 + send3)
+        self.cumulativeHmac = Cryptography.hash(send1 + recv2 + send3 + self.sharedSecret)
         
         return True
     

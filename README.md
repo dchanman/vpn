@@ -28,18 +28,28 @@ Refer to the official guide [here](http://conda.pydata.org/docs/install/quick.ht
 
 # Protocol
 
+## Cryptography Parameters
+* Diffie-Hellman parameters bitsizes (g, p, a, b): 8-bits
+    * This is insecure in practice, but larger parameter bitsizes would require a more efficient exponentiation implementation
+* AES block size: 32-bites
+* AES mode: CBC
+* HMAC algorithm: SHA256
+* Nonce size: 32 bits
+
+The session key is the first 32-bits from the SHA256 hash of the Diffie-Hellman shared key.
+
 ## Handshake
 
-Our key establishment protocol is based on the SSL Connection Protocol. This protocol takes place after a client and a server have already established a *session key*. 
+Our key establishment protocol is based on the SSL Connection Protocol and the Diffie-Hellman key exchange.
 
-We assumes that both client and server have a *sharedSecret* that no other party can access. We will use this shared secret as if it were the SSL *session key*.
+We assumes that both client and server have a *sharedSecret* that no other party can access. We will use this shared secret for mutual authentication.
 
 ### Steps
-1. Client: Generate a **session-key** and **IV**. Encrypt the **session-key**. Send the **IV**, **session-key** and a random nonce **R<sub>A</sub>**. 
-2. Server: Replies with a random nonce **R<sub>B</sub>**, and the hash *h(message1 | "SRVR" | sharedSecret)*
-3. Client: Replies with the hash *h(mesage1 | message2 | "CLNT" | sharedSecret)*
+1. Client: Generate Diffie-Hellman parameters **g**, **p**, **a**. Compute **(g^a)modp**. Send "p, g, (g^a)modp, nonce"
+2. Server: Generate Diffie-Hellman parameter **b**. Compute **(g^b)modp** and derive the session key from **(g^ab)modp**. Send "(g^b)modp, E(h(msg1, SRVR, sharedSecret), sessionKey), IV"
+3. Client: Derive the session key from **(g^ab)modp**. Send "E(h(msg1, msg2, CLNT, sharedSecret), sessionKey), IV"
 
-At this point, both client and server have established a session-key. The server will use the *sharedSecret* to decrypt the session-key.
+At this point, both client and server have established a session-key. The *cumulative HMAC* (explained more in the next section) is initialized to be the hash of *msg1, msg2, msg3, sharedSecret* that were sent in the handshake.
 
 ## Communication
 

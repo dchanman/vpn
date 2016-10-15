@@ -23,6 +23,7 @@ from Crypto.Util import number
 SYMMETRIC_KEY_BLOCK_SIZE = AES.block_size
 SYMMETRIC_KEY_IV_SIZE = 16
 SYMMETRIC_KEY_KEY_SIZE = 32
+DH_PRIME_BITSIZE = 8
 DH_NUMBER_BITSIZE = 8
 NONCE_SIZE = 32
 HMAC_LENGTH = 64 # SHA256 is 64 charcaters long
@@ -34,7 +35,7 @@ def generateLargeRandomPrime():
     """
     Returns large random prime number
     """
-    return int(number.getPrime(DH_NUMBER_BITSIZE))
+    return int(number.getPrime(DH_PRIME_BITSIZE))
 
 def generateRandomNumber():
     """

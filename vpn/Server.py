@@ -19,7 +19,7 @@ class Server(Host.Host):
         
         ########################################################################
         # MESSAGE 1
-        # Receive p, g, (g^a)modp and RandomA
+        # Receive p, g, (g^a)modp and nonce
         ########################################################################
         recv1 = self.recv(8000000)
         recv1Components = recv1.split(",")
@@ -75,7 +75,7 @@ class Server(Host.Host):
         
         ########################################################################
         # MESSAGE 3
-        # Receive E(h(msgs, "CLNT", sharedSecret), (g^ab)modp)
+        # Receive E(h(msgs, "CLNT", sharedSecret), (g^ab)modp), IV
         ########################################################################
         recv3 = self.recv()
         recv3Components = recv3.split(",")
@@ -102,7 +102,7 @@ class Server(Host.Host):
         ########################################################################
         print("Session key established")
         self.TRACE("Session Key: {}\n".format(self.sessionKey))
-        self.cumulativeHmac = Cryptography.hash(recv1 + send2 + recv3)
+        self.cumulativeHmac = Cryptography.hash(recv1 + send2 + recv3 + self.sharedSecret)
         
         return True
     
