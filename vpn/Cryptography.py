@@ -23,7 +23,7 @@ from Crypto.Util import number
 SYMMETRIC_KEY_BLOCK_SIZE = AES.block_size
 SYMMETRIC_KEY_IV_SIZE = 16
 SYMMETRIC_KEY_KEY_SIZE = 32
-DH_PRIME_BITSIZE = 8
+DH_PRIME_BITSIZE = 16
 DH_NUMBER_BITSIZE = 8
 NONCE_SIZE = 32
 HMAC_LENGTH = 64 # SHA256 is 64 charcaters long
@@ -42,6 +42,36 @@ def generateRandomNumber():
     Returns a random number
     """
     return random.randint(0, 2**DH_NUMBER_BITSIZE)
+
+###############################################################################
+# Fast exponentiation
+###############################################################################
+def fastExponentiation(x, n):
+    """
+    Computes x^n quickly for large n using exponentiation by squaring.
+    Algorithm here: https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+    """
+    if n < 0:
+        print("Expected n > 0")
+        return None
+    
+    if n == 0:
+        return 1
+        
+    y = 1
+    while n > 1:
+        # even exponent, square the result
+        if n % 2 == 0:
+            x *= x
+            n /= 2
+        # odd exponent, multiply by base
+        else:
+            y *= x
+            x *= x
+            n = (n - 1) / 2
+    
+    return x * y
+    
 
 ###############################################################################
 # Hashing with SHA256
@@ -150,3 +180,14 @@ if __name__ == "__main__":
     randNum = generateRandomNumber()
     print("Random Number: {}".format(randNum))
 
+    # Test fast exponentiation
+    print("2^8 = {}".format(fastExponentiation(2, 8)))
+    print("2^9 = {}".format(fastExponentiation(2, 9)))
+    print("2^10 = {}".format(fastExponentiation(2, 10)))
+    print("2^11 = {}".format(fastExponentiation(2, 11)))
+    print("3^8 = {}".format(fastExponentiation(3, 8)))
+    print("3^9 = {}".format(fastExponentiation(3, 9)))
+    print("3^10 = {}".format(fastExponentiation(3, 10)))
+    print("3^11 = {}".format(fastExponentiation(3, 11)))
+    print("30^41 = {}".format(fastExponentiation(30, 41)))
+    print("31^41 = {}".format(fastExponentiation(31, 41)))

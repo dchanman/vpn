@@ -29,8 +29,10 @@ Refer to the official guide [here](http://conda.pydata.org/docs/install/quick.ht
 # Protocol
 
 ## Cryptography Parameters
-* Diffie-Hellman parameters bitsizes (g, p, a, b): 8-bits
-    * This is insecure in practice, but larger parameter bitsizes would require a more efficient exponentiation implementation
+* Diffie-Hellman generator primes sizes (g, p): 16-bits
+    * This is insecure in practice, but larger bitsizes would require a faster implementation to compute ((g^x)modp)^y
+* Diffie-Hellman private number bitsizes (a, b): 8-bits
+    * This is insecure in practice, but larger bitsizes would require a faster implementation to compute ((g^x)modp)^y
 * AES block size: 32-bites
 * AES mode: CBC
 * HMAC algorithm: SHA256
