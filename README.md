@@ -2,7 +2,36 @@
 
 This is a small VPN program that allows a client and a server program talk to one another.
 
-# Setup
+# Usage
+
+In one terminal, run the following command
+```
+vpn/Server.py
+```
+
+In another terminal, run the following command
+```
+vpn/Client.py
+```
+
+## Optional Arguments
+
+The following arguments work for both `Server` and `Client`:
+### Verbose output
+
+Display tracing output for all intermediate cryptographic operations. Note that this will display the session key in plain text.
+```
+vpn/Server.py -v
+```
+
+### Specify port
+
+A known issue is that if the client closes the TCP connection, the port will continue to be locked after both client and server processes terminate. A workaround is to use a different port until the old port reaches a timeout.
+```
+vpn/Server.py 33333
+```
+
+# Environment Setup
 
 ## General Setup
 
