@@ -17,12 +17,12 @@ class Server(Host.Host):
         """
         self.initServer()
         
-        
-        
+        ########################################################################
+        # MESSAGE 1
         # Receive p, g, (g^a)modp and RandomA
-        recv1 = self.recv(8000000).decode("utf-8")
+        ########################################################################
+        recv1 = self.recv(8000000)
         recv1Components = recv1.split(",")
-        print(recv1)
         if len(recv1Components) != 4:
             print("Handshake error: Invalid number of message components: {}".format(len(recv1Components)))
             print("len: {}".format(len(recv1)))
@@ -31,31 +31,40 @@ class Server(Host.Host):
         p = int(recv1Components[0])
         g = int(recv1Components[1])
         gamodp = int(recv1Components[2])
-        RA = recv1Components[3]
-        self.TRACE("1 Recv:\np: {}\ng: {}\ngamodp: {}\nRA: {}\n".format(
+        nonce = recv1Components[3].decode("hex")
+        self.TRACE("1 Recv:\n p: {}\n g: {}\n (g^a)modp: {}\n nonce: {}\n".format(
             p,
             g,
             gamodp,
-            RA)
+            nonce.encode("hex"))
         )
         
-        # Generate secret integer b
+        ########################################################################
+        # DIFFIE-HELLMAN
+        # Generate Diffie Hellman b
+        # Compute (g^b)modp
+        # Compute ((g^a)modp)^b
+        ########################################################################
         b = Cryptography.generateRandomNumber()
-        
-        # Calculate (g^b)modp
         gbmodp = (g % p) ** b
+        self.TRACE("Diffie Hellman Parameters:\n p: {}\n g: {}\n b: {}\n".format(
+            p,
+            g,
+            b)
+        )
         
         # Calculate session key
         gabmodp = gamodp ** b
         self.sessionKey = Cryptography.hash(str(gabmodp))[:Cryptography.SYMMETRIC_KEY_BLOCK_SIZE]
         self.TRACE("Session Key: {}\n".format(self.sessionKey))
         
-        # Send reply: (g^b)modp, E(h(recv1, SRVR, self.sharedSecret), (g^ab)modp), IV
+        ########################################################################
+        # MESSAGE 2
+        # Send (g^b)modp, E(h(recv1, SRVR, self.sharedSecret), (g^ab)modp), IV
+        ########################################################################
         IV2 = Cryptography.generateRandomIV()
         hash2 = Cryptography.hash(recv1 + "SRVR" + str(self.sharedSecret))
-        self.TRACE("hash2: {}\n".format(hash2))
         ehash2 = Cryptography.symmetricKeyEncrypt(self.sessionKey, IV2, hash2)
-        self.TRACE("ehash2: {}\n".format(ehash2))
         self.TRACE("2 Send:\n (g^b)modp: {}\n ehash2: {}\n IV2: {}".format(
             gbmodp,
             ehash2.encode("hex"),
@@ -64,7 +73,10 @@ class Server(Host.Host):
         send2 = str(gbmodp) + "," + ehash2.encode("hex") + "," + IV2.encode("hex")
         self.send(send2)
         
+        ########################################################################
+        # MESSAGE 3
         # Receive E(h(msgs, "CLNT", sharedSecret), (g^ab)modp)
+        ########################################################################
         recv3 = self.recv()
         recv3Components = recv3.split(",")
         if len(recv3Components) != 2:
@@ -74,16 +86,24 @@ class Server(Host.Host):
         ehash3 = recv3Components[0].decode("hex")
         IV3 = recv3Components[1].decode("hex")
             
-        self.TRACE("3 Recv:\nehash3: {}\nIV3: {}\n".format(ehash3, IV3))
+        self.TRACE("3 Recv:\n ehash3: {}\n IV3: {}\n".format(
+            ehash3.encode("hex"),
+            IV3.encode("hex"))
+        )
         hash3 = Cryptography.hash(recv1 + send2 + "CLNT" + str(self.sharedSecret))
         verifyEhash3 = Cryptography.symmetricKeyEncrypt(self.sessionKey, IV3, hash3)
-        self.TRACE("Verifying hash: {}\n".format(verifyEhash3))
+        self.TRACE("Verifying hash: {}\n".format(verifyEhash3.encode("hex")))
         if ehash3 != verifyEhash3:
             print("Error: Unexpected ehash3")
             return False
         
-        print("Handshake esablished")
-        self.TRACE("Session Key: {}".format(binascii.hexlify(self.sessionKey)))
+        ########################################################################
+        # Key Exchange complete
+        ########################################################################
+        print("Session key established")
+        self.TRACE("Session Key: {}\n".format(self.sessionKey))
+        self.cumulativeHmac = Cryptography.hash(recv1 + send2 + recv3)
+        
         return True
     
     def run(self):

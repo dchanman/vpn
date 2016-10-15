@@ -28,7 +28,7 @@ NONCE_SIZE = 32
 HMAC_LENGTH = 64 # SHA256 is 64 charcaters long
 
 ###############################################################################
-# Generate large random prime number
+# Generate numbers for Diffie Hellman
 ###############################################################################
 def generateLargeRandomPrime():
     """
@@ -109,42 +109,6 @@ def generateNonce():
     return Random.new().read(NONCE_SIZE)
 
 ###############################################################################
-# Asymmetric Key Crypto with RSA
-###############################################################################
-def generateAsymmetricKey():
-    """
-    Returns two values: private key object and public key object
-    """
-    privateKey = RSA.generate(2048)
-    return privateKey, privateKey.publickey()
-
-def asymmetricKeyEncrypt(publicKey, plaintext):
-    """
-    Returns plaintext encrypted with RSA with a given public key
-    """
-    # 32 is a random parameter for compatibility only. The value will be ignored
-    return publicKey.encrypt(plaintext, 32)
-
-def asymmetricKeyDecrypt(privateKey, ciphertext):
-    """
-    Returns ciphertext decrypted with RSA with a given private key
-    """
-    return privateKey.decrypt(ciphertext)
-
-def asymmetricKeySign(privateKey, msg):
-    """
-    Hashes and signs msg with a given private key
-    """
-    # 32 is a random parameter for compatibility only. The value will be ignored
-    return privateKey.sign(hash(msg), 32)
-
-def asymmetricKeyVerify(publicKey, msg, signature):
-    """
-    Verifies signature is correct for msg with a given public key
-    """
-    return publicKey.verify(hash(msg), signature)
-
-###############################################################################
 # Test code
 ###############################################################################
 if __name__ == "__main__":
@@ -184,19 +148,4 @@ if __name__ == "__main__":
     # Generate a random number
     randNum = generateRandomNumber()
     print("Random Number: {}".format(randNum))
-    
-    # Asymmetric Key Testing
-    privKey, pubKey = generateAsymmetricKey()
-    print("Private key: {}".format(privKey))
-    print("Public key: {}".format(pubKey))
-    
-    encrypted = asymmetricKeyEncrypt(pubKey, msg)
-    print("Encrypted: {}".format(encrypted))
-    decrypted = asymmetricKeyDecrypt(privKey, encrypted)
-    print("Decrypted: {}".format(decrypted))
-    
-    signature = asymmetricKeySign(privKey, msg)
-    print("Signature: {}".format(signature))
-    verify = asymmetricKeyVerify(pubKey, msg, signature)
-    print("Verify: {}".format(verify))
 

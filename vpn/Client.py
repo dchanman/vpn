@@ -17,7 +17,11 @@ class Client(Host.Host):
         """
         self.initClient()
         
-        # Generate Diffie Hellman g and p
+        ########################################################################
+        # DIFFIE-HELLMAN
+        # Generate Diffie Hellman g, p, a
+        # Compute (g^a)modp
+        ########################################################################
         g = Cryptography.generateLargeRandomPrime()
         p = g
         # Make sure we don't accidentally generate the same prime...
@@ -29,25 +33,30 @@ class Client(Host.Host):
         
         # Calculate (g^a)modp
         gamodp = (g % p) ** a
-        self.TRACE("p: {}\ng: {}\na: {}\ngmodp: {}".format(p, g, a, gamodp))
+        self.TRACE("Diffie Hellman Parameters:\n p: {}\n g: {}\n a: {}\n".format(
+            p,
+            g,
+            a)
+        )
         
+        ########################################################################
+        # MESSAGE 1
         # Send p, g, (g^a)modp, and RandomA
-                
-        RA = Cryptography.generateNonce()
-        self.TRACE("1 Send:\np: {}\ng: {}\ngmodp: {}\nnonceA: {}\n".format(
+        ########################################################################
+        nonce = Cryptography.generateNonce()
+        self.TRACE("1 Send:\n p: {}\n g: {}\n (g^a)modp: {}\n nonce: {}\n".format(
             p,
             g,
             gamodp,
-            binascii.hexlify(RA))
+            nonce.encode("hex"))
         )
-        send1 = str(p) + "," 
-        send1 += str(g) + "," 
-        send1 += str(gamodp) + "," 
-        send1 += binascii.hexlify(RA).decode("utf-8")
-        self.TRACE("len: {}".format(len(send1)))
-        self.send(send1.encode("utf-8"))
+        send1 = str(p) + "," + str(g) + "," + str(gamodp) + "," + nonce.encode("hex")
+        self.send(send1)
                         
-        # Wait for reply: (g^b)modp, E(h(recv1, SRVR, self.sharedSecret), (g^ab)modp), IV
+        ########################################################################
+        # MESSAGE 2
+        # Receive (g^b)modp, E(h(recv1, SRVR, self.sharedSecret), (g^ab)modp), IV
+        ########################################################################
         recv2 = self.recv(8000000)
         recv2Components = recv2.split(",")
         if len(recv2Components) != 3:
@@ -57,13 +66,17 @@ class Client(Host.Host):
         gbmodp = int(recv2Components[0])
         ehash2 = recv2Components[1].decode("hex")
         IV2 = recv2Components[2].decode("hex")
-        self.TRACE("2 Recv:\ngbmodp: {}\n ehash2: {}\n IV: {}".format(
+        self.TRACE("2 Recv:\n (g^b)modp: {}\n ehash2: {}\n IV: {}".format(
             gbmodp,
             ehash2.encode("hex"),
             IV2.encode("hex"))
         )
         
+        ########################################################################
+        # DIFFIE-HELLMAN
         # Calculate session key
+        # Compute ((g^a)modp)^b
+        ########################################################################
         gabmodp = gbmodp ** a
         self.sessionKey = Cryptography.hash(str(gabmodp))[:Cryptography.SYMMETRIC_KEY_BLOCK_SIZE]
         self.TRACE("Session Key: {}\n".format(self.sessionKey))
@@ -71,22 +84,33 @@ class Client(Host.Host):
         # Verify reply
         hash2 = Cryptography.hash(send1 + "SRVR" + str(self.sharedSecret))
         verifyEhash2 = Cryptography.symmetricKeyEncrypt(self.sessionKey, IV2, hash2)
-        self.TRACE("Verifying hash: {}\n".format(verifyEhash2))
+        self.TRACE("Verifying hash: {}\n".format(verifyEhash2.encode("hex")))
         if ehash2 != verifyEhash2:
             self.TRACE("Error: Unexpected hash2")
             return False
-            
+        
+        ########################################################################
+        # MESSAGE 3
         # Send E(h(msgs, "CLNT", sharedSecret), (g^ab)modp)
+        ########################################################################
         IV3 = Cryptography.generateRandomIV()
         msg3 = send1 + recv2 + "CLNT" + str(self.sharedSecret)
         hash3 = Cryptography.hash(msg3)
         ehash3 = Cryptography.symmetricKeyEncrypt(self.sessionKey, IV3, hash3)
-        self.TRACE("3 Send:\nehash2 {}\nIV2: {}\n".format(ehash3, IV3))
+        self.TRACE("3 Send:\nehash2 {}\nIV2: {}\n".format(
+            ehash3.encode("hex"),
+            IV3.encode("hex"))
+        )
         send3 = ehash3.encode("hex") + "," + IV3.encode("hex")
         self.send(send3);
         
-        self.TRACE("Handshake esablished")
-        self.TRACE("Session Key: {}".format(binascii.hexlify(self.sessionKey)))
+        ########################################################################
+        # Key Exchange complete
+        ########################################################################
+        print("Session key established")
+        self.TRACE("Session Key: {}\n".format(self.sessionKey))
+        self.cumulativeHmac = Cryptography.hash(send1 + recv2 + send3)
+        
         return True
     
     def run(self):
