@@ -14,6 +14,8 @@ from Crypto.Hash import HMAC
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA
 from Crypto import Random
+from Crypto.Random import random
+from Crypto.Util import number
 
 ###############################################################################
 # Constants
@@ -21,20 +23,24 @@ from Crypto import Random
 SYMMETRIC_KEY_BLOCK_SIZE = AES.block_size
 SYMMETRIC_KEY_IV_SIZE = 16
 SYMMETRIC_KEY_KEY_SIZE = 32
+DH_NUMBER_BITSIZE = 8
 NONCE_SIZE = 32
 HMAC_LENGTH = 64 # SHA256 is 64 charcaters long
 
 ###############################################################################
-# Generate random key following handshake
+# Generate large random prime number
 ###############################################################################
-def hash(sharedSecret, sessionID):
+def generateLargeRandomPrime():
     """
-    Returns an AES key generated randomly from a sharedSecret + sessionID seed
+    Returns large random prime number
     """
-    Random.new().read(SYMMETRIC_KEY_BLOCK_SIZE)
-    sha256 = SHA256.new()
-    sha256.update(msg)
-    return sha256.hexdigest()
+    return int(number.getPrime(DH_NUMBER_BITSIZE))
+
+def generateRandomNumber():
+    """
+    Returns a random number
+    """
+    return random.randint(0, 2**DH_NUMBER_BITSIZE)
 
 ###############################################################################
 # Hashing with SHA256
@@ -175,6 +181,10 @@ if __name__ == "__main__":
     hmacResult = hmac(symKey, iv, msg)
     print("HMAC: {}".format(hmacResult))
     
+    # Generate a random number
+    randNum = generateRandomNumber()
+    print("Random Number: {}".format(randNum))
+    
     # Asymmetric Key Testing
     privKey, pubKey = generateAsymmetricKey()
     print("Private key: {}".format(privKey))
@@ -189,3 +199,4 @@ if __name__ == "__main__":
     print("Signature: {}".format(signature))
     verify = asymmetricKeyVerify(pubKey, msg, signature)
     print("Verify: {}".format(verify))
+

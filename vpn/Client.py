@@ -17,40 +17,73 @@ class Client(Host.Host):
         """
         self.initClient()
         
-        # Send Encrypted Session Key and RandomA
-        self.sessionKey = Cryptography.generateSymmetricKey()
-        iv = Cryptography.generateRandomIV()
-        encryptedSessionKey = Cryptography.symmetricKeyEncrypt(self.sharedSecret, iv, self.sessionKey)
+        # Generate Diffie Hellman g and p
+        g = Cryptography.generateLargeRandomPrime()
+        p = g
+        # Make sure we don't accidentally generate the same prime...
+        while p == g:
+            p = Cryptography.generateLargeRandomPrime()
+        
+        # Generate secret integer a
+        a = Cryptography.generateRandomNumber()
+        
+        # Calculate (g^a)modp
+        gamodp = (g % p) ** a
+        self.TRACE("p: {}\ng: {}\na: {}\ngmodp: {}".format(p, g, a, gamodp))
+        
+        # Send p, g, (g^a)modp, and RandomA
                 
         RA = Cryptography.generateNonce()
-        self.TRACE("1 Send:\niv: {}\nencryptedSessionKey: {}\nnonceA: {}\n".format(
-            binascii.hexlify(iv),
-            binascii.hexlify(encryptedSessionKey),
+        self.TRACE("1 Send:\np: {}\ng: {}\ngmodp: {}\nnonceA: {}\n".format(
+            p,
+            g,
+            gamodp,
             binascii.hexlify(RA))
         )
-        send1 = iv + encryptedSessionKey + RA
-        self.send(send1)
+        send1 = str(p) + "," 
+        send1 += str(g) + "," 
+        send1 += str(gamodp) + "," 
+        send1 += binascii.hexlify(RA).decode("utf-8")
+        self.TRACE("len: {}".format(len(send1)))
+        self.send(send1.encode("utf-8"))
                         
-        # Wait for reply: RandomB, h(msg, "SRVR", sharedSecret)
-        recv1 = self.recv(1024)
-        RB = recv1[:Cryptography.NONCE_SIZE]
-        hash1 = recv1[Cryptography.NONCE_SIZE:]
-        self.TRACE("2 Recv:\nnonceB: {}\nhash1: {}\n".format(
-            binascii.hexlify(RB),
-            hash1)
-        )
-        verifyHash1 = Cryptography.hash(send1 + "SRVR" + str(self.sharedSecret))
+        # Wait for reply: (g^b)modp, E(h(recv1, SRVR, self.sharedSecret), (g^ab)modp), IV
+        recv2 = self.recv(8000000)
+        recv2Components = recv2.split(",")
+        if len(recv2Components) != 3:
+            print("Handshake error: Received invalid number of message components: {}".format(len(recv2Components)))
+            return False
         
-        self.TRACE("Verifying hash: {}\n".format(verifyHash1))
-        if hash1 != verifyHash1:
-            self.TRACE("Error: Unexpected hash1")
+        gbmodp = int(recv2Components[0])
+        ehash2 = recv2Components[1].decode("hex")
+        IV2 = recv2Components[2].decode("hex")
+        self.TRACE("2 Recv:\ngbmodp: {}\n ehash2: {}\n IV: {}".format(
+            gbmodp,
+            ehash2.encode("hex"),
+            IV2.encode("hex"))
+        )
+        
+        # Calculate session key
+        gabmodp = gbmodp ** a
+        self.sessionKey = Cryptography.hash(str(gabmodp))[:Cryptography.SYMMETRIC_KEY_BLOCK_SIZE]
+        self.TRACE("Session Key: {}\n".format(self.sessionKey))
+        
+        # Verify reply
+        hash2 = Cryptography.hash(send1 + "SRVR" + str(self.sharedSecret))
+        verifyEhash2 = Cryptography.symmetricKeyEncrypt(self.sessionKey, IV2, hash2)
+        self.TRACE("Verifying hash: {}\n".format(verifyEhash2))
+        if ehash2 != verifyEhash2:
+            self.TRACE("Error: Unexpected hash2")
             return False
             
-        # Send h(msgs, "CLNT", sharedSecret)
-        msg2 = send1 + recv1 + "CLNT" + str(self.sharedSecret)
-        hash2 = Cryptography.hash(msg2)
-        self.TRACE("3 Send:\nhash {}\n".format(hash2))
-        self.send(hash2);
+        # Send E(h(msgs, "CLNT", sharedSecret), (g^ab)modp)
+        IV3 = Cryptography.generateRandomIV()
+        msg3 = send1 + recv2 + "CLNT" + str(self.sharedSecret)
+        hash3 = Cryptography.hash(msg3)
+        ehash3 = Cryptography.symmetricKeyEncrypt(self.sessionKey, IV3, hash3)
+        self.TRACE("3 Send:\nehash2 {}\nIV2: {}\n".format(ehash3, IV3))
+        send3 = ehash3.encode("hex") + "," + IV3.encode("hex")
+        self.send(send3);
         
         self.TRACE("Handshake esablished")
         self.TRACE("Session Key: {}".format(binascii.hexlify(self.sessionKey)))
