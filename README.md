@@ -76,12 +76,12 @@ Refer to the official guide [here](http://conda.pydata.org/docs/install/quick.ht
     * This is insecure in practice, but larger bitsizes would require a faster implementation to compute ((g^x)modp)^y
 * Diffie-Hellman private number bitsizes (a, b): 8-bits
     * This is insecure in practice, but larger bitsizes would require a faster implementation to compute ((g^x)modp)^y
-* AES block size: 32-bites
+* AES block size: 32-bytes
 * AES mode: CBC
 * HMAC algorithm: SHA256
-* Nonce size: 32 bits
+* Nonce size: 32-bits
 
-The session key is the first 32-bits from the SHA256 hash of the Diffie-Hellman shared key.
+The session key is the first 32-bytes from the SHA256 hash of the Diffie-Hellman shared key.
 
 ## Handshake
 
