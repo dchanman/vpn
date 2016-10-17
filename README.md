@@ -17,6 +17,18 @@ vpn/Client.py
 ## Optional Arguments
 
 The following arguments work for both `Server` and `Client`:
+
+### Setting shared secret
+
+```
+vpn/Server.py --shared-secret "ohboyilovesecurity"
+```
+
+Equivalently:
+```
+vpn/Server.py -s "ohboyilovesecurity"
+```
+
 ### Verbose output
 
 Display tracing output for all intermediate cryptographic operations. Note that this will display the session key in plain text.

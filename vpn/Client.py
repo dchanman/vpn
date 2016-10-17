@@ -60,7 +60,6 @@ class Client(Host.Host):
         recv2 = self.recv(8000000)
         recv2Components = recv2.split(",")
         if len(recv2Components) != 3:
-            print("Handshake error: Received invalid number of message components: {}".format(len(recv2Components)))
             return False
         
         gbmodp = int(recv2Components[0])
@@ -133,21 +132,28 @@ class Client(Host.Host):
 if __name__ == "__main__":
     import argparse
     import sys
-    parser = argparse.ArgumentParser(description="Test executable for Client module")
+    parser = argparse.ArgumentParser(description="CPEN442 VPN Client")
 
     parser.add_argument(
         'port',
         type=int,
         nargs="?",
-        help="Port number",
+        help="port number",
         default=32694)
+    parser.add_argument(
+        '--shared-secret',
+        '-s',
+        type=str,
+        nargs="?",
+        help="specify shared secret",
+        default="iloveildar")
     parser.add_argument(
         '--verbose',
         '-v',
         action="store_true",
-        help="Display handshaking")
+        help="display handshaking")
 
     args = parser.parse_args()
     
-    client = Client(portNum = args.port, verbose = args.verbose)
+    client = Client(portNum = args.port, verbose = args.verbose, sharedSecret=args.shared_secret)
     client.run()

@@ -24,8 +24,6 @@ class Server(Host.Host):
         recv1 = self.recv(8000000)
         recv1Components = recv1.split(",")
         if len(recv1Components) != 4:
-            print("Handshake error: Invalid number of message components: {}".format(len(recv1Components)))
-            print("len: {}".format(len(recv1)))
             return False
             
         p = int(recv1Components[0])
@@ -80,7 +78,6 @@ class Server(Host.Host):
         recv3 = self.recv()
         recv3Components = recv3.split(",")
         if len(recv3Components) != 2:
-            print("Handshake error: Received invalid number of message components: {}".format(len(recv2Components)))
             return False
         
         ehash3 = recv3Components[0].decode("hex")
@@ -126,21 +123,28 @@ class Server(Host.Host):
 if __name__ == "__main__":
     import argparse
     import sys
-    parser = argparse.ArgumentParser(description="Test executable for Host module")
+    parser = argparse.ArgumentParser(description="CPEN442 VPN Server")
 
     parser.add_argument(
         'port',
         type=int,
         nargs="?",
-        help="Port number",
+        help="port number",
         default=32694)
+    parser.add_argument(
+        '--shared-secret',
+        '-s',
+        type=str,
+        nargs="?",
+        help="specify shared secret",
+        default="iloveildar")
     parser.add_argument(
         '--verbose',
         '-v',
         action="store_true",
-        help="Display handshaking")
+        help="display handshaking")
 
     args = parser.parse_args()
     
-    server = Server(portNum = args.port, verbose = args.verbose)
+    server = Server(portNum = args.port, verbose = args.verbose, sharedSecret=args.shared_secret)
     server.run()
