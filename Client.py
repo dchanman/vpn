@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-import Host
-import Cryptography
-import binascii
+import vpn.Host as Host
+import vpn.Cryptography as Cryptography
 
 class Client(Host.Host):
     
