@@ -52,7 +52,6 @@ class Server(Host.Host):
         
         # Calculate session key
         gabmodp = pow(gamodp, b, p)
-        print(gabmodp)
         
         self.sessionKey = Cryptography.hash(str(gabmodp))[:Cryptography.SYMMETRIC_KEY_BLOCK_SIZE]
         self.TRACE("Session Key: {}\n".format(self.sessionKey))
