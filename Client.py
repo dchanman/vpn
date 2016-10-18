@@ -31,7 +31,7 @@ class Client(Host.Host):
         a = Cryptography.generateRandomNumber()
         
         # Calculate (g^a)modp
-        gamodp = Cryptography.fastExponentiation((g % p), a)
+        gamodp = pow(g, a, p)
         self.TRACE("Diffie Hellman Parameters:\n p: {}\n g: {}\n a: {}\n".format(
             p,
             g,
@@ -75,7 +75,7 @@ class Client(Host.Host):
         # Calculate session key
         # Compute ((g^a)modp)^b
         ########################################################################
-        gabmodp = Cryptography.fastExponentiation(gbmodp, a)
+        gabmodp = pow(gbmodp, a, p)
         self.sessionKey = Cryptography.hash(str(gabmodp))[:Cryptography.SYMMETRIC_KEY_BLOCK_SIZE]
         self.TRACE("Session Key: {}\n".format(self.sessionKey))
         

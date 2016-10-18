@@ -44,36 +44,6 @@ def generateRandomNumber():
     return random.randint(0, 2**DH_NUMBER_BITSIZE)
 
 ###############################################################################
-# Fast exponentiation
-###############################################################################
-def fastExponentiation(x, n):
-    """
-    Computes x^n quickly for large n using exponentiation by squaring.
-    Algorithm here: https://en.wikipedia.org/wiki/Exponentiation_by_squaring
-    """
-    if n < 0:
-        print("Expected n > 0")
-        return None
-    
-    if n == 0:
-        return 1
-        
-    y = 1
-    while n > 1:
-        # even exponent, square the result
-        if n % 2 == 0:
-            x *= x
-            n /= 2
-        # odd exponent, multiply by base
-        else:
-            y *= x
-            x *= x
-            n = (n - 1) / 2
-    
-    return x * y
-    
-
-###############################################################################
 # Hashing with SHA256
 ###############################################################################
 def hash(msg):
