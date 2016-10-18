@@ -25,7 +25,7 @@ SYMMETRIC_KEY_IV_SIZE = 16
 SYMMETRIC_KEY_KEY_SIZE = 32
 DH_PRIME_BITSIZE = 2048
 DH_NUMBER_BITSIZE = 2048
-NONCE_SIZE = 32
+NONCE_SIZE = 256
 HMAC_LENGTH = 64 # SHA256 is 64 charcaters long
 
 ###############################################################################
@@ -35,7 +35,7 @@ def generateLargeRandomPrime():
     """
     Returns large random prime number
     """
-    return int(number.getPrime(DH_PRIME_BITSIZE))
+    return int(number.getStrongPrime(DH_PRIME_BITSIZE))
 
 def generateRandomNumber():
     """

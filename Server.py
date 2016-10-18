@@ -29,7 +29,7 @@ class Server(Host.Host):
         g = int(recv1Components[1])
         gamodp = int(recv1Components[2])
         nonce = recv1Components[3].decode("hex")
-        self.TRACE("1 Recv:\n p: {}\n g: {}\n (g^a)modp: {}\n nonce: {}\n".format(
+        self.TRACE("1 Recv:\n p: {:X}\n g: {:X}\n (g^a)modp: {:X}\n nonce: {}\n".format(
             p,
             g,
             gamodp,
@@ -44,7 +44,7 @@ class Server(Host.Host):
         ########################################################################
         b = Cryptography.generateRandomNumber()
         gbmodp = pow(g, b, p)
-        self.TRACE("Diffie Hellman Parameters:\n p: {}\n g: {}\n b: {}\n".format(
+        self.TRACE("Diffie Hellman Parameters:\n p: {:X}\n g: {:X}\n b: {:X}\n".format(
             p,
             g,
             b)
@@ -53,8 +53,8 @@ class Server(Host.Host):
         # Calculate session key
         gabmodp = pow(gamodp, b, p)
         
-        self.sessionKey = Cryptography.hash(str(gabmodp))[:Cryptography.SYMMETRIC_KEY_BLOCK_SIZE]
-        self.TRACE("Session Key: {}\n".format(self.sessionKey))
+        self.sessionKey = Cryptography.hash(str(gabmodp))[:Cryptography.SYMMETRIC_KEY_BLOCK_SIZE * 4].decode("hex")
+        self.TRACE("Session Key ({}): {}\n".format(len(self.sessionKey), self.sessionKey.encode("hex")))
         
         ########################################################################
         # MESSAGE 2
@@ -63,7 +63,7 @@ class Server(Host.Host):
         IV2 = Cryptography.generateRandomIV()
         hash2 = Cryptography.hash(recv1 + "SRVR" + str(self.sharedSecret))
         ehash2 = Cryptography.symmetricKeyEncrypt(self.sessionKey, IV2, hash2)
-        self.TRACE("2 Send:\n (g^b)modp: {}\n ehash2: {}\n IV2: {}".format(
+        self.TRACE("2 Send:\n (g^b)modp: {:X}\n ehash2: {}\n IV2: {}".format(
             gbmodp,
             ehash2.encode("hex"),
             IV2.encode("hex"))
@@ -98,7 +98,7 @@ class Server(Host.Host):
         # Key Exchange complete
         ########################################################################
         print("Session key established")
-        self.TRACE("Session Key: {}\n".format(self.sessionKey))
+        self.TRACE("Session Key ({}): {}\n".format(len(self.sessionKey), self.sessionKey.encode("hex")))
         self.cumulativeHmac = Cryptography.hash(recv1 + send2 + recv3 + self.sharedSecret)
         
         return True
