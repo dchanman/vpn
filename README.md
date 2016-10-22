@@ -90,6 +90,9 @@ Our key establishment protocol is based on the SSL Connection Protocol and the D
 We assumes that both client and server have a *sharedSecret* that no other party can access. We will use this shared secret for mutual authentication.
 
 ### Steps
+
+![](https://docs.google.com/drawings/d/1kC4hnNbmt18PxBpzv0AEfDZQC26UqlAmUohOYFaDe_U/pub?w=961&h=408)
+
 1. Client: Generate Diffie-Hellman parameters **g**, **p**, **a**. Compute **(g^a)modp**. Send "p, g, (g^a)modp, nonce"
 2. Server: Generate Diffie-Hellman parameter **b**. Compute **(g^b)modp** and derive the session key from **(g^ab)modp**. Send "(g^b)modp, E(h(msg1, SRVR, sharedSecret), sessionKey), IV"
 3. Client: Derive the session key from **(g^ab)modp**. Send "E(h(msg1, msg2, CLNT, sharedSecret), sessionKey), IV"
